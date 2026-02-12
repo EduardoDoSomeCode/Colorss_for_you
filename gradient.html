@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Gradientes</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+
+  <nav>
+    <a href="index.html">Color generation</a>
+    <a href="image.html">Generate color from a image</a>
+
+  </nav>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background: #1e1e1e;
+                color: white;
+                display: flex;
+                justify-content: center;
+                padding: 20px;
+            }
+
+            .container {
+                width: 600px;
+                background: #2c2c2c;
+                padding: 20px;
+                border-radius: 10px;
+            }
+
+            .controls label {
+                display: block;
+                margin-top: 10px;
+            }
+
+            input,
+            select,
+            button,
+            textarea {
+                width: 100%;
+                margin-top: 5px;
+                padding: 8px;
+                border-radius: 5px;
+                border: none;
+            }
+
+            #preview {
+                height: 200px;
+                margin-top: 20px;
+                border-radius: 8px;
+            }
+
+            textarea {
+                height: 60px;
+                margin-top: 10px;
+            }
+
+            .buttons {
+                display: flex;
+                gap: 10px;
+                margin-top: 10px;
+            }
+
+            button {
+                cursor: pointer;
+                background: #4CAF50;
+                color: white;
+            }
+        </style>
+        <h1>🎨 Generador de Gradientes</h1>
+
+        <div class="controls">
+            <label>Tipo de Gradiente:</label>
+            <select id="gradientType">
+                <option value="linear">Linear</option>
+                <option value="radial">Radial</option>
+            </select>
+
+            <label>Ángulo (solo linear):</label>
+            <input type="number" id="angle" min="0" max="360" value="90">
+
+            <label>Cantidad de Colores:</label>
+            <input type="number" id="colorCount" min="2" max="6" value="2">
+
+            <button id="generateColors">Generar Colores</button>
+        </div>
+
+        <div id="colorInputs"></div>
+
+        <div id="preview"></div>
+
+        <textarea id="cssOutput" readonly></textarea>
+
+        <div class="buttons">
+            <button id="copyCSS">Copiar CSS</button>
+            <button id="downloadImage">Exportar Imagen</button>
+        </div>
+    </div>
+
+    <script>
+        const gradientType = document.getElementById("gradientType");
+        const angleInput = document.getElementById("angle");
+        const colorCountInput = document.getElementById("colorCount");
+        const generateColorsBtn = document.getElementById("generateColors");
+        const colorInputsDiv = document.getElementById("colorInputs");
+        const preview = document.getElementById("preview");
+        const cssOutput = document.getElementById("cssOutput");
+        const copyCSS = document.getElementById("copyCSS");
+        const downloadImage = document.getElementById("downloadImage");
+
+        // 🎯 Generar inputs de colores dinámicamente
+        generateColorsBtn.addEventListener("click", () => {
+            const count = parseInt(colorCountInput.value);
+
+            // ✅ Validación fuerte
+            if (isNaN(count) || count < 2) {
+                alert("Debe haber al menos 2 colores.");
+                colorCountInput.value = 2;
+                return;
+            }
+
+            colorInputsDiv.innerHTML = "";
+
+            for (let i = 0; i < count; i++) {
+                const input = document.createElement("input");
+                input.type = "color";
+                input.value = getRandomColor();
+
+                // ✅ Listener directo seguro
+                input.addEventListener("input", () => {
+                    updateGradient();
+                });
+
+                colorInputsDiv.appendChild(input);
+            }
+
+            updateGradient();
+        });
+
+        // 🎯 Generar gradiente
+        function updateGradient() {
+
+            const colorInputs = colorInputsDiv.querySelectorAll("input");
+
+            // ✅ Validación defensiva
+            if (!colorInputs || colorInputs.length < 2) {
+                preview.style.background = "#333";
+                cssOutput.value = "";
+                return;
+            }
+
+            const colors = [...colorInputs].map(input => input.value);
+
+            let gradient = "";
+
+            if (gradientType.value === "linear") {
+
+                let angle = parseInt(angleInput.value);
+
+                // ✅ Si el ángulo está vacío o inválido
+                if (isNaN(angle)) {
+                    angle = 90;
+                    angleInput.value = 90;
+                }
+
+                gradient = `linear-gradient(${angle}deg, ${colors.join(", ")})`;
+
+            } else {
+
+                gradient = `radial-gradient(circle, ${colors.join(", ")})`;
+            }
+
+            preview.style.background = gradient;
+            cssOutput.value = `background: ${gradient};`;
+        }
+
+
+        // 🎯 Copiar CSS
+        copyCSS.addEventListener("click", () => {
+            cssOutput.select();
+            document.execCommand("copy");
+            alert("CSS copiado!");
+        });
+
+        // 🎯 Exportar como imagen
+        downloadImage.addEventListener("click", () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = 800;
+            canvas.height = 400;
+            const ctx = canvas.getContext("2d");
+
+            const colors = [...colorInputsDiv.querySelectorAll("input")]
+                .map(input => input.value);
+
+            if (colors.length < 2) {
+                alert("Se necesitan al menos 2 colores.");
+                return;
+            }
+
+            let gradient;
+
+            if (gradientType.value === "linear") {
+
+                // 🎯 Convertimos ángulo a radianes
+                const angle = (parseInt(angleInput.value) || 90) * Math.PI / 180;
+
+                // 🎯 Calculamos dirección basada en ángulo
+                const x = Math.cos(angle) * canvas.width;
+                const y = Math.sin(angle) * canvas.height;
+
+                // 🎯 Creamos gradiente dinámico
+                gradient = ctx.createLinearGradient(
+                    canvas.width / 2 - x / 2,
+                    canvas.height / 2 - y / 2,
+                    canvas.width / 2 + x / 2,
+                    canvas.height / 2 + y / 2
+                );
+
+            } else {
+
+                // 🎯 Gradiente radial centrado
+                gradient = ctx.createRadialGradient(
+                    canvas.width / 2,
+                    canvas.height / 2,
+                    0,
+                    canvas.width / 2,
+                    canvas.height / 2,
+                    canvas.width / 2
+                );
+            }
+
+            // 🎯 Agregamos los color stops correctamente
+            colors.forEach((color, index) => {
+                gradient.addColorStop(index / (colors.length - 1), color);
+            });
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const link = document.createElement("a");
+            link.download = "gradient.png";
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        });
+
+        // 🎯 Generar color aleatorio
+        function getRandomColor() {
+            return "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+        }
+
+        // Eventos adicionales
+        gradientType.addEventListener("change", updateGradient);
+        angleInput.addEventListener("input", updateGradient);
+
+        // Inicializar
+        generateColorsBtn.click();
+
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,226 @@
+ 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Generador de Paleta de Colores</title>
+
+  <nav>
+    <a href="index.html">Color generation</a>
+    <a href="gradient.html">Gradient generation</a>
+
+  </nav>
+<!-- Librería ColorThief -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    text-align: center;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+canvas {
+    max-width: 100%;
+    margin-top: 20px;
+}
+
+.palette {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.color-box {
+    width: 120px;
+    height: 120px;
+    margin: 10px;
+    border-radius: 10px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    padding: 5px;
+}
+button {
+    margin: 10px;
+    padding: 10px 15px;
+    cursor: pointer;
+}
+.error {
+    color: red;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+    <h2>Generador de Paleta desde Imagen</h2>
+
+    <input type="file" id="imageInput" accept="image/*">
+    
+    <br><br>
+    
+    <label>Cantidad de colores:</label>
+    <input type="number" id="colorCount" value="5" min="2" max="20">
+
+    <br><br>
+
+    <button onclick="generatePalette()">Generar Paleta</button>
+    <button onclick="exportJSON()">Exportar JSON</button>
+    <button onclick="exportPNG()">Exportar PNG</button>
+
+    <p id="errorMsg" class="error"></p>
+
+    <canvas id="canvas" hidden></canvas>
+
+    <div class="palette" id="paletteContainer"></div>
+</div>
+
+<script>
+const imageInput = document.getElementById('imageInput');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const paletteContainer = document.getElementById('paletteContainer');
+const errorMsg = document.getElementById('errorMsg');
+
+let currentPalette = []; // 🔹 Guardamos la paleta actual para exportar
+
+function generatePalette() {
+
+    errorMsg.textContent = "";
+    paletteContainer.innerHTML = "";
+
+    // 🔹 VALIDACIÓN: Verificar si se seleccionó archivo
+    if (!imageInput.files || imageInput.files.length === 0) {
+        errorMsg.textContent = "Por favor selecciona una imagen primero.";
+        return;
+    }
+
+    const file = imageInput.files[0];
+
+    // 🔹 VALIDACIÓN: verificar tipo de archivo
+    if (!file.type.startsWith("image/")) {
+        errorMsg.textContent = "El archivo seleccionado no es una imagen válida.";
+        return;
+    }
+
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        img.src = e.target.result;
+    };
+
+    reader.readAsDataURL(file);
+
+    img.onload = function() {
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        ctx.drawImage(img, 0, 0);
+
+        const colorThief = new ColorThief();
+
+        const count = parseInt(document.getElementById('colorCount').value);
+
+        // 🔹 VALIDACIÓN del número de colores
+        if (count < 2 || count > 20) {
+            errorMsg.textContent = "Selecciona entre 2 y 20 colores.";
+            return;
+        }
+
+        // 🔹 OBTENER PALETA
+        const palette = colorThief.getPalette(img, count);
+        currentPalette = palette;
+
+        displayPalette(palette);
+    };
+}
+
+function displayPalette(palette) {
+
+    palette.forEach(color => {
+
+        const rgb = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+        const hex = rgbToHex(color[0], color[1], color[2]);
+
+        const div = document.createElement("div");
+        div.className = "color-box";
+        div.style.background = rgb;
+        div.textContent = hex;
+
+        paletteContainer.appendChild(div);
+    });
+}
+
+function rgbToHex(r, g, b) {
+    return "#" + [r,g,b]
+        .map(x => x.toString(16).padStart(2, '0'))
+        .join('');
+}
+
+function exportJSON() {
+
+    if (currentPalette.length === 0) {
+        errorMsg.textContent = "No hay paleta para exportar.";
+        return;
+    }
+
+    const hexPalette = currentPalette.map(c => rgbToHex(c[0], c[1], c[2]));
+
+    const blob = new Blob([JSON.stringify(hexPalette, null, 2)], {
+        type: "application/json"
+    });
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "palette.json";
+    link.click();
+}
+
+function exportPNG() {
+
+    if (currentPalette.length === 0) {
+        errorMsg.textContent = "No hay paleta para exportar.";
+        return;
+    }
+
+    // 🔹 Crear canvas temporal para exportar imagen
+    const exportCanvas = document.createElement("canvas");
+    const exportCtx = exportCanvas.getContext("2d");
+
+    const width = 150 * currentPalette.length;
+    const height = 150;
+
+    exportCanvas.width = width;
+    exportCanvas.height = height;
+
+    currentPalette.forEach((color, index) => {
+        exportCtx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+        exportCtx.fillRect(index * 150, 0, 150, height);
+    });
+
+    const link = document.createElement("a");
+    link.href = exportCanvas.toDataURL("image/png");
+    link.download = "palette.png";
+    link.click();
+}
+</script>
+
+</body>
+</html>
