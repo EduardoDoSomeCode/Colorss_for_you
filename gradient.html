@@ -194,13 +194,16 @@
                 <img id="originalImage">
             </div>
 
-            <div class="image-box gradient-box">
+            <div class="image-box gradient-box" id="exportTarget">
                 <img id="previewImage">
                 <div id="gradientOverlay"></div>
             </div>
         </div>
+        <button id="downloadPreview">Descargar Preview</button>
 
     </div>
+
+
 
     <script>
         const gradientType = document.getElementById("gradientType");
@@ -377,6 +380,7 @@
             canvas.width = 800;
             canvas.height = 400;
             const ctx = canvas.getContext("2d");
+            ctx.imageSmoothingEnabled = true;
 
             const colors = [...colorInputsDiv.querySelectorAll("input")]
                 .map(input => input.value);
@@ -544,8 +548,103 @@
 
             reader.readAsDataURL(file);
         });
+        document.getElementById("downloadPreview").addEventListener("click", async () => {
+            if (!previewImage.src || !previewImage.complete || previewImage.naturalWidth === 0) {
+                alert("Carga una imagen válida (JPG/PNG) primero.");
+                return;
+            }
 
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = previewImage.src;
+
+            try {
+                await img.decode();
+            } catch (e) {
+                console.error("Image decode failed:", e);
+                alert("Error al cargar la imagen. Usa una local o con CORS permitido.");
+                return;
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext("2d");
+
+            // Draw image with smoothing
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(img, 0, 0);
+
+            // Get colors
+            const colors = [...colorInputsDiv.querySelectorAll("input")].map(i => i.value);
+            if (colors.length < 2) {
+                alert("Necesitas ≥2 colores");
+                return;
+            }
+
+            // ✅ CORRECTED GRADIENT CREATION (REPLACE YOUR CURRENT BLOCK)
+            const angleRad = (parseInt(angleInput.value) || 90) * Math.PI / 180;
+            const directionX = Math.cos(angleRad);
+            const directionY = Math.sin(angleRad);
+
+            let gradient;
+
+            if (gradientType.value === "linear") {
+                // Fixed-length direction vector (1000px)
+                const length = 1000;
+                const startX = canvas.width / 2 - directionX * length;
+                const startY = canvas.height / 2 - directionY * length;
+                const endX = canvas.width / 2 + directionX * length;
+                const endY = canvas.height / 2 + directionY * length;
+
+                gradient = ctx.createLinearGradient(startX, startY, endX, endY);
+            } else {
+                // Proper radial gradient sizing
+                gradient = ctx.createRadialGradient(
+                    canvas.width / 2,
+                    canvas.height / 2,
+                    0,
+                    canvas.width / 2,
+                    canvas.height / 2,
+                    Math.max(canvas.width, canvas.height) * 0.7
+                );
+            }
+
+            // Add color stops
+            colors.forEach((color, i) => {
+                gradient.addColorStop(i / (colors.length - 1), color);
+            });
+
+            // Draw gradient with NO smoothing
+            ctx.imageSmoothingEnabled = false;
+
+            // Apply overlay
+            const blendMap = {
+                normal: "source-over",
+                multiply: "multiply",
+                overlay: "overlay",
+                screen: "screen",
+                "soft-light": "soft-light"
+            };
+
+            ctx.globalAlpha = parseFloat(overlayOpacity.value);
+            ctx.globalCompositeOperation = blendMap[blendMode.value] || "source-over";
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Reset
+            ctx.globalAlpha = 1;
+            ctx.globalCompositeOperation = "source-over";
+            ctx.imageSmoothingEnabled = true;
+
+            // Export
+            const link = document.createElement("a");
+            link.download = "preview-gradient.png";
+            link.href = canvas.toDataURL("image/png", 1.0);
+            link.click();
+        });
     </script>
+
 </body>
 
 </html>
