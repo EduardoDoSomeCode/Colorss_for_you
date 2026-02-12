@@ -1,226 +1,304 @@
- 
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-<meta charset="UTF-8">
-<title>Generador de Paleta de Colores</title>
+    <meta charset="UTF-8">
+    <title>Generador de Paleta de Colores</title>
 
-  <nav>
-    <a href="index.html">Color generation</a>
-    <a href="gradient.html">Gradient generation</a>
+    <nav>
+        <a href="index.html">Color generation</a>
+        <a href="gradient.html">Gradient generation</a>
 
-  </nav>
-<!-- Librería ColorThief -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
+    </nav>
+    <!-- Librería ColorThief -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
 
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background: #f4f4f4;
-    text-align: center;
-    padding: 20px;
-}
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            text-align: center;
+            padding: 20px;
+        }
 
-.container {
-    max-width: 800px;
-    margin: auto;
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
+        .drop-zone {
+            border: 2px dashed #999;
+            padding: 40px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+            background: #fafafa;
+        }
 
-canvas {
-    max-width: 100%;
-    margin-top: 20px;
-}
+        .drop-zone:hover {
+            background: #f0f0f0;
+        }
 
-.palette {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-top: 20px;
-}
+        .drop-zone.dragover {
+            border-color: #333;
+            background: #e8e8e8;
+        }
 
-.color-box {
-    width: 120px;
-    height: 120px;
-    margin: 10px;
-    border-radius: 10px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    padding: 5px;
-}
-button {
-    margin: 10px;
-    padding: 10px 15px;
-    cursor: pointer;
-}
-.error {
-    color: red;
-    font-weight: bold;
-}
-</style>
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        canvas {
+
+            max-width: 100%;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .palette {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .color-box {
+            width: 120px;
+            height: 120px;
+            margin: 10px;
+            border-radius: 10px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            padding: 5px;
+        }
+
+        button {
+            margin: 10px;
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
 </head>
 
 <body>
-<div class="container">
-    <h2>Generador de Paleta desde Imagen</h2>
+    <div class="container">
+        <h2>Generador de Paleta desde Imagen</h2>
 
-    <input type="file" id="imageInput" accept="image/*">
-    
-    <br><br>
-    
-    <label>Cantidad de colores:</label>
-    <input type="number" id="colorCount" value="5" min="2" max="20">
+        <div id="dropZone" class="drop-zone">
+            Arrastra tu imagen aquí o haz click para seleccionar
+            <input type="file" id="imageInput" accept="image/*" hidden>
+        </div>
 
-    <br><br>
+        <p id="fileName"></p>
+        <br><br>
 
-    <button onclick="generatePalette()">Generar Paleta</button>
-    <button onclick="exportJSON()">Exportar JSON</button>
-    <button onclick="exportPNG()">Exportar PNG</button>
+        <label>Cantidad de colores:</label>
+        <input type="number" id="colorCount" value="5" min="2" max="20">
 
-    <p id="errorMsg" class="error"></p>
+        <br><br>
 
-    <canvas id="canvas" hidden></canvas>
+        <button onclick="generatePalette()">Generar Paleta</button>
+        <button onclick="exportPNG()">Exportar PNG</button>
 
-    <div class="palette" id="paletteContainer"></div>
-</div>
+        <p id="errorMsg" class="error"></p>
 
-<script>
-const imageInput = document.getElementById('imageInput');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const paletteContainer = document.getElementById('paletteContainer');
-const errorMsg = document.getElementById('errorMsg');
+        <canvas id="canvas"></canvas>
 
-let currentPalette = []; // 🔹 Guardamos la paleta actual para exportar
+        <div class="palette" id="paletteContainer"></div>
+    </div>
 
-function generatePalette() {
+    <script>
+        const fileNameDisplay = document.getElementById("fileName"); // 🔹 referencia al <p>
 
-    errorMsg.textContent = "";
-    paletteContainer.innerHTML = "";
+        const imageInput = document.getElementById('imageInput');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const paletteContainer = document.getElementById('paletteContainer');
+        const errorMsg = document.getElementById('errorMsg');
+        const dropZone = document.getElementById("dropZone");
 
-    // 🔹 VALIDACIÓN: Verificar si se seleccionó archivo
-    if (!imageInput.files || imageInput.files.length === 0) {
-        errorMsg.textContent = "Por favor selecciona una imagen primero.";
-        return;
-    }
+        // 🔹 Click en la zona abre el selector
+        dropZone.addEventListener("click", () => {
+            imageInput.click();
+        });
 
-    const file = imageInput.files[0];
+        // 🔹 Cuando se selecciona archivo manualmente
+        imageInput.addEventListener("change", (e) => {
+            handleFile(e.target.files[0]);
+        });
 
-    // 🔹 VALIDACIÓN: verificar tipo de archivo
-    if (!file.type.startsWith("image/")) {
-        errorMsg.textContent = "El archivo seleccionado no es una imagen válida.";
-        return;
-    }
+        // 🔹 Cuando se arrastra sobre la zona
+        dropZone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropZone.classList.add("dragover");
+        });
 
-    const img = new Image();
-    const reader = new FileReader();
+        // 🔹 Cuando se sale del área
+        dropZone.addEventListener("dragleave", () => {
+            dropZone.classList.remove("dragover");
+        });
 
-    reader.onload = function(e) {
-        img.src = e.target.result;
-    };
+        // 🔹 Cuando se suelta el archivo
+        dropZone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropZone.classList.remove("dragover");
 
-    reader.readAsDataURL(file);
+            const file = e.dataTransfer.files[0];
+            handleFile(file);
+        });
 
-    img.onload = function() {
+        let loadedImage = null; // 🔹 imagen cargada globalmente
 
-        canvas.width = img.width;
-        canvas.height = img.height;
+        function handleFile(file) {
 
-        ctx.drawImage(img, 0, 0);
+            errorMsg.textContent = "";
 
-        const colorThief = new ColorThief();
 
-        const count = parseInt(document.getElementById('colorCount').value);
+            // 🔹 VALIDACIÓN: verificar archivo
 
-        // 🔹 VALIDACIÓN del número de colores
-        if (count < 2 || count > 20) {
-            errorMsg.textContent = "Selecciona entre 2 y 20 colores.";
-            return;
+            // 🔹 VALIDACIÓN: verificar archivo
+            if (!file) {
+                errorMsg.textContent = "No se detectó ningún archivo.";
+                fileNameDisplay.textContent = ""; // 🔹 limpiar nombre
+
+                return;
+            }
+
+            // 🔹 VALIDACIÓN: tipo imagen
+            if (!file.type.startsWith("image/")) {
+                errorMsg.textContent = "Solo se permiten imágenes.";
+                fileNameDisplay.textContent = ""; // 🔹 limpiar nombre
+                return;
+            }
+
+            fileNameDisplay.textContent = "Archivo cargado: " + file.name;
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const img = new Image();
+                img.src = e.target.result;
+
+                img.onload = function () {
+
+
+                    loadedImage = img;
+
+                    drawPreview(img); // 🔹 ahora usamos función separada
+                    dropZone.textContent = "Imagen cargada correctamente ✔";
+                };
+            };
+
+            reader.readAsDataURL(file);
         }
 
-        // 🔹 OBTENER PALETA
-        const palette = colorThief.getPalette(img, count);
-        currentPalette = palette;
+        function drawPreview(img) {
 
-        displayPalette(palette);
-    };
-}
+            const maxWidth = 400; // límite visual
+            const scale = Math.min(maxWidth / img.width, 1);
 
-function displayPalette(palette) {
+            const width = img.width * scale;
+            const height = img.height * scale;
 
-    palette.forEach(color => {
+            canvas.width = width;
+            canvas.height = height;
 
-        const rgb = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
-        const hex = rgbToHex(color[0], color[1], color[2]);
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // limpiar antes
 
-        const div = document.createElement("div");
-        div.className = "color-box";
-        div.style.background = rgb;
-        div.textContent = hex;
+            ctx.drawImage(img, 0, 0, width, height);
+        }
 
-        paletteContainer.appendChild(div);
-    });
-}
+        let currentPalette = []; // 🔹 Guardamos la paleta actual para exportar
 
-function rgbToHex(r, g, b) {
-    return "#" + [r,g,b]
-        .map(x => x.toString(16).padStart(2, '0'))
-        .join('');
-}
+        function generatePalette() {
 
-function exportJSON() {
+            errorMsg.textContent = "";
+            paletteContainer.innerHTML = "";
 
-    if (currentPalette.length === 0) {
-        errorMsg.textContent = "No hay paleta para exportar.";
-        return;
-    }
+            // 🔹 VALIDATION: ensure image is loaded
+            if (!loadedImage) {
+                errorMsg.textContent = "Primero debes cargar una imagen.";
+                return;
+            }
 
-    const hexPalette = currentPalette.map(c => rgbToHex(c[0], c[1], c[2]));
+            const count = parseInt(document.getElementById('colorCount').value);
 
-    const blob = new Blob([JSON.stringify(hexPalette, null, 2)], {
-        type: "application/json"
-    });
+            if (isNaN(count) || count < 2 || count > 20) {
+                errorMsg.textContent = "Selecciona entre 2 y 20 colores.";
+                return;
+            }
 
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "palette.json";
-    link.click();
-}
+            const colorThief = new ColorThief();
 
-function exportPNG() {
+            // 🔹 Use already loaded image (THIS IS THE FIX)
+            const palette = colorThief.getPalette(loadedImage, count);
 
-    if (currentPalette.length === 0) {
-        errorMsg.textContent = "No hay paleta para exportar.";
-        return;
-    }
+            currentPalette = palette;
 
-    // 🔹 Crear canvas temporal para exportar imagen
-    const exportCanvas = document.createElement("canvas");
-    const exportCtx = exportCanvas.getContext("2d");
+            displayPalette(palette);
+        }
 
-    const width = 150 * currentPalette.length;
-    const height = 150;
+        function displayPalette(palette) {
 
-    exportCanvas.width = width;
-    exportCanvas.height = height;
+            palette.forEach(color => {
 
-    currentPalette.forEach((color, index) => {
-        exportCtx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
-        exportCtx.fillRect(index * 150, 0, 150, height);
-    });
+                const rgb = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+                const hex = rgbToHex(color[0], color[1], color[2]);
 
-    const link = document.createElement("a");
-    link.href = exportCanvas.toDataURL("image/png");
-    link.download = "palette.png";
-    link.click();
-}
-</script>
+                const div = document.createElement("div");
+                div.className = "color-box";
+                div.style.background = rgb;
+                div.textContent = hex;
+
+                paletteContainer.appendChild(div);
+            });
+        }
+
+        function rgbToHex(r, g, b) {
+            return "#" + [r, g, b]
+                .map(x => x.toString(16).padStart(2, '0'))
+                .join('');
+        }
+
+
+        function exportPNG() {
+
+            if (currentPalette.length === 0) {
+                errorMsg.textContent = "No hay paleta para exportar.";
+                return;
+            }
+
+            // 🔹 Crear canvas temporal para exportar imagen
+            const exportCanvas = document.createElement("canvas");
+            const exportCtx = exportCanvas.getContext("2d");
+
+            const width = 150 * currentPalette.length;
+            const height = 150;
+
+            exportCanvas.width = width;
+            exportCanvas.height = height;
+
+            currentPalette.forEach((color, index) => {
+                exportCtx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+                exportCtx.fillRect(index * 150, 0, 150, height);
+            });
+
+            const link = document.createElement("a");
+            link.href = exportCanvas.toDataURL("image/png");
+            link.download = "palette.png";
+            link.click();
+        }
+    </script>
 
 </body>
+
 </html>

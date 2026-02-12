@@ -13,11 +13,11 @@
     <div class="container">
 
 
-  <nav>
-    <a href="index.html">Color generation</a>
-    <a href="image.html">Generate color from a image</a>
+        <nav>
+            <a href="index.html">Color generation</a>
+            <a href="image.html">Generate color from a image</a>
 
-  </nav>
+        </nav>
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -73,6 +73,61 @@
                 background: #4CAF50;
                 color: white;
             }
+
+            .image-section {
+                margin-top: 30px;
+            }
+
+            .image-preview-wrapper {
+                display: flex;
+                gap: 20px;
+                margin-top: 15px;
+            }
+
+            .image-box {
+                position: relative;
+                width: 100%;
+                height: 250px;
+                background: #222;
+                border-radius: 8px;
+                overflow: hidden;
+            }
+
+            .image-box img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .gradient-box {
+                position: relative;
+            }
+
+            #gradientOverlay {
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+            }
+
+            .drop-zone {
+                border: 2px dashed #4CAF50;
+                padding: 30px;
+                text-align: center;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: 0.3s ease;
+                background: #1a1a1a;
+            }
+
+            .drop-zone.dragover {
+                background: #2e7d32;
+                border-color: #81c784;
+            }
+
+            .drop-zone p {
+                margin: 0;
+                opacity: 0.8;
+            }
         </style>
         <h1>🎨 Generador de Gradientes</h1>
 
@@ -92,16 +147,59 @@
             <button id="generateColors">Generar Colores</button>
         </div>
 
+        <label>Tipo de Armonía:</label>
+        <select id="harmonyType">
+            <option value="custom">Personalizado</option>
+            <option value="mono">Monocromática</option>
+            <option value="analogous">Análoga</option>
+            <option value="complementary">Complementaria</option>
+            <option value="triadic">Triádica</option>
+        </select>
+
         <div id="colorInputs"></div>
 
         <div id="preview"></div>
 
-        <textarea id="cssOutput" readonly></textarea>
+        <!-- <textarea id="cssOutput" readonly></textarea> -->
 
         <div class="buttons">
-            <button id="copyCSS">Copiar CSS</button>
+            <!-- <button id="copyCSS">Copiar CSS</button> -->
             <button id="downloadImage">Exportar Imagen</button>
         </div>
+
+    </div>
+    <div class="image-section">
+
+        <div class="image-controls">
+            <label>Cargar Imagen:</label>
+            <div id="dropZone" class="drop-zone">
+                <p>Arrastra tu imagen aquí o haz clic</p>
+                <input type="file" id="imageInput" accept="image/*" hidden>
+            </div>
+            <label>Opacidad del Gradiente:</label>
+            <input type="range" id="overlayOpacity" min="0" max="1" step="0.1" value="0.5">
+
+            <label>Modo de Mezcla:</label>
+            <select id="blendMode">
+                <option value="normal">Normal</option>
+                <option value="multiply">Multiply</option>
+                <option value="overlay">Overlay</option>
+                <option value="screen">Screen</option>
+                <option value="soft-light">Soft Light</option>
+            </select>
+        </div>
+
+        <div class="image-preview-wrapper">
+            <div class="image-box">
+                <img id="originalImage">
+            </div>
+
+            <div class="image-box gradient-box">
+                <img id="previewImage">
+                <div id="gradientOverlay"></div>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -111,9 +209,78 @@
         const generateColorsBtn = document.getElementById("generateColors");
         const colorInputsDiv = document.getElementById("colorInputs");
         const preview = document.getElementById("preview");
-        const cssOutput = document.getElementById("cssOutput");
-        const copyCSS = document.getElementById("copyCSS");
+        const imageInput = document.getElementById("imageInput");
+        const originalImage = document.getElementById("originalImage");
+        const previewImage = document.getElementById("previewImage");
+        const gradientOverlay = document.getElementById("gradientOverlay");
+        const overlayOpacity = document.getElementById("overlayOpacity");
+        const blendMode = document.getElementById("blendMode");
+
+        // const cssOutput = document.getElementById("cssOutput");
+        //const copyCSS = document.getElementById("copyCSS");
         const downloadImage = document.getElementById("downloadImage");
+        const dropZone = document.getElementById("dropZone");
+        function handleImage(file) {
+
+            if (!file) return;
+
+            // ✅ Validar tipo
+            if (!file.type.startsWith("image/")) {
+                alert("El archivo debe ser una imagen.");
+                return;
+            }
+
+            // ✅ Validar tamaño (ej: 5MB máximo)
+            if (file.size > 5 * 1024 * 1024) {
+                alert("La imagen es demasiado grande (máx 5MB).");
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                originalImage.src = event.target.result;
+                previewImage.src = event.target.result;
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        // 🖱 Click abre selector
+        dropZone.addEventListener("click", () => {
+            imageInput.click();
+        });
+
+        // 🛑 Evitar comportamiento por defecto
+        ["dragenter", "dragover", "dragleave", "drop"].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => e.preventDefault());
+        });
+
+        // 🎨 Efecto visual cuando arrastras
+        dropZone.addEventListener("dragover", () => {
+            dropZone.classList.add("dragover");
+        });
+
+        dropZone.addEventListener("dragleave", () => {
+            dropZone.classList.remove("dragover");
+        });
+
+        // 📦 Cuando sueltas archivo
+        dropZone.addEventListener("drop", (e) => {
+
+            dropZone.classList.remove("dragover");
+
+            const file = e.dataTransfer.files[0];
+
+            handleImage(file);
+        });
+
+        // 📁 Cuando seleccionas manualmente
+        imageInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            handleImage(file);
+        });
+
 
         // 🎯 Generar inputs de colores dinámicamente
         generateColorsBtn.addEventListener("click", () => {
@@ -127,6 +294,9 @@
             }
 
             colorInputsDiv.innerHTML = "";
+
+
+
 
             for (let i = 0; i < count; i++) {
                 const input = document.createElement("input");
@@ -152,7 +322,7 @@
             // ✅ Validación defensiva
             if (!colorInputs || colorInputs.length < 2) {
                 preview.style.background = "#333";
-                cssOutput.value = "";
+                // cssOutput.value = "";
                 return;
             }
 
@@ -178,16 +348,28 @@
             }
 
             preview.style.background = gradient;
-            cssOutput.value = `background: ${gradient};`;
+            // Aplicar gradiente al overlay si hay imagen
+            gradientOverlay.style.background = gradient;
+            gradientOverlay.style.opacity = overlayOpacity.value;
+            gradientOverlay.style.mixBlendMode = blendMode.value;
+
+            // cssOutput.value = `background: ${gradient};`;
         }
+        overlayOpacity.addEventListener("input", () => {
+            gradientOverlay.style.opacity = overlayOpacity.value;
+        });
+
+        blendMode.addEventListener("change", () => {
+            gradientOverlay.style.mixBlendMode = blendMode.value;
+        });
 
 
         // 🎯 Copiar CSS
-        copyCSS.addEventListener("click", () => {
-            cssOutput.select();
-            document.execCommand("copy");
-            alert("CSS copiado!");
-        });
+        // copyCSS.addEventListener("click", () => {
+        //     cssOutput.select();
+        //     document.execCommand("copy");
+        //     alert("CSS copiado!");
+        // });
 
         // 🎯 Exportar como imagen
         downloadImage.addEventListener("click", () => {
@@ -261,7 +443,107 @@
 
         // Inicializar
         generateColorsBtn.click();
+        function hslToHex(h, s, l) {
 
+            s /= 100;
+            l /= 100;
+
+            const k = n => (n + h / 30) % 12;
+            const a = s * Math.min(l, 1 - l);
+
+            const f = n =>
+                l - a * Math.max(-1, Math.min(k(n) - 3,
+                    Math.min(9 - k(n), 1)));
+
+            const toHex = x =>
+                Math.round(x * 255).toString(16).padStart(2, "0");
+
+            return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+        }
+
+        function generateHarmony(baseColor, type, count) {
+
+            const base = hexToHSL(baseColor);
+            const colors = [];
+
+            for (let i = 0; i < count; i++) {
+
+                let hue = base.h;
+
+                if (type === "analogous") {
+                    hue = (base.h + (i * 30)) % 360;
+                }
+
+                if (type === "complementary") {
+                    hue = i % 2 === 0 ? base.h : (base.h + 180) % 360;
+                }
+
+                if (type === "triadic") {
+                    hue = (base.h + (i * 120)) % 360;
+                }
+
+                if (type === "mono") {
+                    colors.push(
+                        hslToHex(base.h, base.s, Math.max(10, base.l - i * 10)
+                        )
+                    );
+                    continue;
+                }
+
+                colors.push(
+                    hslToHex(hue, base.s, base.l)
+                );
+            }
+
+            return colors;
+        }
+        const harmonySelect = document.getElementById("harmonyType");
+
+        harmonySelect.addEventListener("change", () => {
+
+            const inputs = colorInputsDiv.querySelectorAll("input");
+            if (!inputs.length) return;
+
+            const baseColor = inputs[0].value;
+            const count = parseInt(colorCountInput.value);
+
+            if (harmonySelect.value === "custom") return;
+
+            const harmonyColors = generateHarmony(
+                baseColor,
+                harmonySelect.value,
+                count
+            );
+
+            // Reemplazar colores generados
+            inputs.forEach((input, index) => {
+                input.value = harmonyColors[index];
+            });
+
+            updateGradient();
+        });
+
+
+
+        // 📁 Cargar imagen
+        imageInput.addEventListener("change", (e) => {
+
+            const file = e.target.files[0];
+
+            if (!file) {
+                alert("Selecciona una imagen válida.");
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                originalImage.src = event.target.result;
+                previewImage.src = event.target.result;
+            };
+
+            reader.readAsDataURL(file);
+        });
 
     </script>
 </body>
