@@ -6,6 +6,18 @@ let isVertical = false; // NEW
 const history = []; // NEW
 const MAX_HISTORY = 10;
 
+// Add this near the top of main.js (after const declarations)
+function svgIcon(name) {
+    const icons = {
+        lock: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 4c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>`,
+        unlock: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 4c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>`,
+        trash: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H6v2h12V4z"/></svg>`,
+        palette: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`,
+        star: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`
+    };
+    return icons[name] || "";
+}
+
 /* -------------------------
    Color helpers
 -------------------------- */
@@ -37,6 +49,7 @@ function recalcSizes() {
         blocks[2].style.flex = 1;
     }
 }
+
 function saveHistory() {
     const snapshot = {
         id: crypto.randomUUID(),
@@ -55,6 +68,7 @@ function saveHistory() {
     persistFavorites();
     renderHistory(); // ✅ THIS WAS MISSING
 }
+
 function renderHistory() {
     historyEl.innerHTML = "";
 
@@ -71,7 +85,7 @@ function renderHistory() {
         // ⭐ favorite toggle
         const fav = document.createElement("button");
         fav.className = "fav-btn";
-        fav.textContent = entry.favorite ? "⭐" : "☆";
+        fav.innerHTML = entry.favorite ? "&#9733;" : "&#9734;"; // ★ ☆
 
         fav.onclick = (e) => {
             e.stopPropagation();
@@ -82,14 +96,17 @@ function renderHistory() {
 
         mini.appendChild(fav);
 
-        mini.onclick = () => restorePalette(entry.colors);
+        // FIX: Pass the full entry object, not just entry.colors
+        mini.onclick = () => restorePalette(entry);
 
         historyEl.appendChild(mini);
     });
 }
+
 function persistFavorites() {
     localStorage.setItem("paletteFavorites", JSON.stringify(history));
 }
+
 function loadFavorites() {
     const saved = localStorage.getItem("paletteFavorites");
     if (!saved) return;
@@ -97,7 +114,6 @@ function loadFavorites() {
     history.length = 0;
     history.push(...JSON.parse(saved));
 }
-
 
 document.getElementById("layout").onclick = () => {
     isVertical = !isVertical;
@@ -119,7 +135,6 @@ function createBlock() {
     div.dataset.lock = "none"; // none | full | hue
     div.dataset.hue = "";
 
-
     const label = document.createElement("span");
     label.className = "label";
 
@@ -132,22 +147,22 @@ function createBlock() {
         }, 700);
     };
 
-
     const controls = document.createElement("div");
     controls.className = "controls";
 
     const lock = document.createElement("button");
     lock.className = "btn";
-    lock.textContent = "🔓";
+    lock.innerHTML = "&#128273;"; // 🔓
 
     lock.onclick = () => toggleFullLock(div, lock);
+
     const remove = document.createElement("button");
     remove.className = "btn";
-    remove.textContent = "🗑";
+    remove.innerHTML = "&#128465;"; // 🗑
 
     const hueLock = document.createElement("button");
     hueLock.className = "btn";
-    hueLock.textContent = "🎨";
+    hueLock.innerHTML = "&#127916;"; // 🎨
     hueLock.onclick = () => toggleHueLock(div, hueLock);
 
     remove.onclick = () => {
@@ -201,19 +216,18 @@ function createBlock() {
 
 function toggleFullLock(div, btn) {
     div.dataset.lock = div.dataset.lock === "full" ? "none" : "full";
-    btn.textContent = div.dataset.lock === "full" ? "🔒" : "🔓";
+    btn.innerHTML = div.dataset.lock === "full" ? "&#128274;" : "&#128273;"; // 🔒 🔓
 }
+
 function toggleHueLock(div, btn) {
     div.dataset.lock = div.dataset.lock === "hue" ? "none" : "hue";
     btn.classList.toggle("active", div.dataset.lock === "hue");
 }
 
-
 /* -------------------------
    Generate colors
 -------------------------- */
 function generate() {
-
     [...palette.children].forEach(block => {
         if (block.dataset.lock === "full") return;
 
@@ -238,8 +252,8 @@ function generate() {
         updateContrast(block);
     });
     saveHistory();
-
 }
+
 function luminance(rgb) {
     return rgb.map(v => {
         v /= 255;
@@ -269,25 +283,31 @@ function updateContrast(block) {
     //ratioEl.textContent = `Contrast ${contrastRatio(block.dataset.hex, block.style.color)}`;
 }
 
-
 function restorePalette(snapshot) {
-    palette.innerHTML = "";
+    palette.innerHTML = ""; // Clear existing blocks
 
     snapshot.colors.forEach(item => {
-        const block = createBlock();
+        const block = createBlock(); // Create a new block
         block.dataset.hex = item.hex;
         block.dataset.lock = item.lock;
         block.dataset.hue = item.hue;
-
 
         block.style.background = item.hex;
         block.style.color = getTextColor(item.hex);
         block.querySelector(".label").textContent = item.hex;
 
-        palette.appendChild(block);
+        // Restore lock state
+        const lockBtn = block.querySelector(".btn:first-child");
+        if (item.lock === "full") {
+            toggleFullLock(block, lockBtn); // Apply lock state
+        } else if (item.lock === "hue") {
+            toggleHueLock(block, lockBtn); // Apply hue-lock state
+        }
+
+        palette.appendChild(block); // Add block to palette
     });
 
-    recalcSizes();
+    recalcSizes(); // Recalculate layout
 }
 
 function randomHSL(hue = Math.random() * 360) {
@@ -332,11 +352,19 @@ document.addEventListener("keydown", e => {
 -------------------------- */
 document.getElementById("undo").onclick = () => {
     if (history.length > 1) {
-        history.shift(); // discard current
-        restorePalette(history[0]);
+        history.shift(); // Remove current state
+        restorePalette(history[0]); // Restore previous state
+        renderHistory(); // Refresh history display
     }
 };
-
+document.getElementById("redo").onclick = () => {
+    if (history.length > 1) {
+        const lastState = history.shift(); // Move current state to redo stack
+        restorePalette(history[0]); // Restore next state
+        history.unshift(lastState); // Add back to history for redo
+        renderHistory(); // Refresh history display
+    }
+};
 document.getElementById("generate").onclick = generate;
 
 document.getElementById("add").onclick = () => {

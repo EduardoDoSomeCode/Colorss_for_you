@@ -1,0 +1,21 @@
+   .color-box {
+       width: 120px;
+       height: 120px;
+       margin: 10px;
+       border-radius: 10px;
+       display: flex;
+       align-items: flex-end;
+       justify-content: center;
+       color: white;
+       font-weight: bold;
+       padding: 5px;
+       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+   }
+
+   #wheelCanvas {
+       margin-top: 20px;
+       border-radius: 50%;
+       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+   }
+
+  

@@ -4,39 +4,44 @@
 <head>
   <meta charset="UTF-8" />
   <title> Color Palette Generator</title>
-
+  <link rel="stylesheet" href="base.css">
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-  <nav>
-    <a href="image.html">Image to color</a>
-    <a href="gradient.html">Gradient generation</a>
 
-  </nav>
+  <div class="container">
+    <nav>
+      <a href="image.html">Image to color</a>
+      <a href="gradient.html">Gradient generation</a>
+    </nav>
+    <header>
+      <h1>🎨 Color Palette Generator</h1>
+      <p>Create, lock, and export professional color palettes</p>
+    </header>
 
-  <h1> Color Palette Generator</h1>
+    <div id="palette"></div>
 
+    <div class="actions">
+      <button class="main" id="generate">Generate</button>
+      <button class="main" id="add">Add Color</button>
+      <button class="main" id="layout">Toggle Layout</button>
+      <button class="main" id="export">Export PNG</button>
+    </div>
 
-  <div id="palette"></div>
+    <div class="actions">
+      <button id="undo" class="main">↩ Undo</button>
+      <button id="redo" class="main">↪ Redo</button>
+    </div>
 
-  <div class="actions">
-    <button class="main" id="generate">Generate</button>
-    <button class="main" id="add">Add Color</button>
-    <button class="main" id="layout">Toggle Layout</button>
-    <button class="main" id="export">Export PNG</button>
+    <div id="history"></div>
   </div>
-  <button id="undo" class="main">↩ Undo</button>
-  <button id="redo" class="main">↪ Redo</button>
-  <div id="history"></div>
+
 
   <!-- html2canvas for export -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="main.js"></script>
-
-
-
+  <script src="main.js"></script>
 </body>
 
 </html>

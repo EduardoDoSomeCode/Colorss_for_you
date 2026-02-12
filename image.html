@@ -3,131 +3,211 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Generador de Paleta de Colores</title>
-
-    <nav>
-        <a href="index.html">Color generation</a>
-        <a href="gradient.html">Gradient generation</a>
-
-    </nav>
-    <!-- Librería ColorThief -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
-
+    <title>Generador de Paleta desde Imagen</title>
+    <link rel="stylesheet" href="base.css">
+    <!-- Optional: small overrides if needed -->
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .drop-zone {
-            border: 2px dashed #999;
-            padding: 40px;
-            border-radius: 12px;
+        /* === COLOR SWATCHES (modern, clean) === */
+        .color-box {
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 8px 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
             cursor: pointer;
-            transition: 0.3s;
-            background: #fafafa;
         }
 
-        .drop-zone:hover {
-            background: #f0f0f0;
+        .color-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: opacity 0.2s;
         }
 
-        .drop-zone.dragover {
-            border-color: #333;
-            background: #e8e8e8;
+        .color-box:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
         }
 
+        .color-box:hover::before {
+            opacity: 1;
+        }
+
+        .color-box span {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+            text-align: center;
+            line-height: 1.2;
+            max-width: 90%;
+            word-break: break-all;
+        }
+
+        /* Optional: add tiny dot indicator for active selection */
+        .color-box.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 0.9rem;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        nav {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 15px 0;
+            background: #252525;
+            border-bottom: 1px solid #333;
+        }
+
+        nav a {
+            color: #b0b0b0;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        #canvas {
+            display: block;
+            margin: auto;
+        }
+
+        nav a:hover,
+        nav a.active {
+            background: #2d2d2d;
+            color: #4CAF50;
+        }
+
+        /* Ensure palette boxes are visible on dark bg */
+        .color-box {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Make drop-zone text readable */
+        .drop-zone p,
+        .drop-zone span {
+            color: #e0e0e0;
+        }
+
+        /* Override any conflicting light-mode styles from old image.css */
+        body {
+            background: #121212 !important;
+            color: #e0e0e0 !important;
+        }
 
         .container {
-            max-width: 800px;
-            margin: auto;
-            background: white;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-        canvas {
-
-            max-width: 100%;
-            margin-top: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        h2 {
+            margin-bottom: 20px;
+            color: #4CAF50;
         }
 
-        .palette {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 20px;
-        }
-
-        .color-box {
-            width: 120px;
-            height: 120px;
-            margin: 10px;
-            border-radius: 10px;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            padding: 5px;
-        }
-
-        button {
-            margin: 10px;
-            padding: 10px 15px;
-            cursor: pointer;
+        #fileName {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            opacity: 0.8;
         }
 
         .error {
-            color: red;
-            font-weight: bold;
+            color: #ff6b6b;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        canvas {
+            background: #222;
+            border-radius: 8px;
+            margin: 20px 0;
         }
 
         #wheelCanvas {
+            display: block;
             margin-top: 20px;
+            margin: auto;
             border-radius: 50%;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .actions {
+            display: flex;
+
         }
     </style>
+
+    <!-- Librería ColorThief -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
 </head>
 
 <body>
-    <div class="container">
-        <h2>Generador de Paleta desde Imagen</h2>
+    <!-- Navigation (must be in body, before container) -->
 
-        <div id="dropZone" class="drop-zone">
-            Arrastra tu imagen aquí o haz click para seleccionar
-            <input type="file" id="imageInput" accept="image/*" hidden>
+
+    <div class="container">
+        <nav>
+
+            <a href="index.html">Color generation</a>
+
+            <a href="gradient.html">Gradient generation</a>
+
+        </nav>
+
+        <header>
+            <h1>🎨 Generador de Paleta desde Imagen</h1>
+            <p>Extrae colores profesionales de cualquier imagen</p>
+        </header>
+
+        <div class="section">
+            <div id="dropZone" class="drop-zone">
+                <p>Arrastra tu imagen aquí o haz click para seleccionar</p>
+                <input type="file" id="imageInput" accept="image/*" hidden>
+            </div>
+
+            <p id="fileName"></p>
+
+            <!-- <label for="colorCount">Cantidad de colores:</label>
+            <input type="number" id="colorCount" value="5" min="2" max="20"> -->
+
+            <div class="actions" style="margin-top: 20px;">
+                <!-- <button onclick="generatePalette()">Generar Paleta</button> -->
+                <button onclick="exportPNG()">Exportar PNG</button>
+            </div>
+
+            <p id="errorMsg" class="error"></p>
+
+            <canvas id="canvas"></canvas>
+
+            <div class="palette" id="paletteContainer"></div>
         </div>
 
-        <p id="fileName"></p>
-        <br><br>
-
-        <label>Cantidad de colores:</label>
-        <input type="number" id="colorCount" value="5" min="2" max="20">
-
-        <br><br>
-
-        <button onclick="generatePalette()">Generar Paleta</button>
-        <button onclick="exportPNG()">Exportar PNG</button>
-
-        <p id="errorMsg" class="error"></p>
-
-        <canvas id="canvas"></canvas>
-
-        <div class="palette" id="paletteContainer"></div>
+        <div class="section">
+            <h3>Rueda Cromática</h3>
+            <canvas id="wheelCanvas" width="400" height="400"></canvas>
+        </div>
     </div>
-    <h3>Rueda Cromática</h3>
-    <canvas id="wheelCanvas" width="400" height="400"></canvas>
 
     <script>
-        const fileNameDisplay = document.getElementById("fileName"); // 🔹 referencia al <p>
-
+        // ✅ Your existing JS logic goes here (unchanged)
+        const fileNameDisplay = document.getElementById("fileName");
         const imageInput = document.getElementById('imageInput');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -137,26 +217,18 @@
         const wheelCanvas = document.getElementById("wheelCanvas");
         const wheelCtx = wheelCanvas.getContext("2d");
 
-
-
         function drawColorWheel() {
-
             const radius = wheelCanvas.width / 2;
             const center = radius;
 
             for (let angle = 0; angle < 360; angle++) {
-
                 wheelCtx.beginPath();
                 wheelCtx.moveTo(center, center);
-
                 wheelCtx.arc(
-                    center,
-                    center,
-                    radius,
+                    center, center, radius,
                     (angle - 1) * Math.PI / 180,
                     angle * Math.PI / 180
                 );
-
                 wheelCtx.closePath();
                 wheelCtx.fillStyle = `hsl(${angle}, 100%, 50%)`;
                 wheelCtx.fill();
@@ -164,28 +236,21 @@
         }
 
         function plotPaletteOnWheel() {
-
             const radius = wheelCanvas.width / 2 - 30;
             const center = wheelCanvas.width / 2;
-
             const points = [];
 
             currentPalette.forEach(color => {
-
                 const hex = rgbToHex(color[0], color[1], color[2]);
                 const hsl = hexToHSL(hex);
-
                 const angle = hsl.h * Math.PI / 180;
-
                 const x = center + radius * Math.cos(angle);
                 const y = center + radius * Math.sin(angle);
 
-                // Dibujar punto
                 wheelCtx.beginPath();
                 wheelCtx.arc(x, y, 8, 0, 2 * Math.PI);
                 wheelCtx.fillStyle = hex;
                 wheelCtx.fill();
-
                 wheelCtx.strokeStyle = "#000";
                 wheelCtx.stroke();
 
@@ -196,13 +261,10 @@
         }
 
         function drawConnections(points) {
-
             wheelCtx.strokeStyle = "#000";
             wheelCtx.lineWidth = 2;
-
             for (let i = 0; i < points.length; i++) {
                 for (let j = i + 1; j < points.length; j++) {
-
                     wheelCtx.beginPath();
                     wheelCtx.moveTo(points[i].x, points[i].y);
                     wheelCtx.lineTo(points[j].x, points[j].y);
@@ -211,68 +273,44 @@
             }
         }
 
-
         function displayPalette(palette) {
+            paletteContainer.innerHTML = "";
 
             palette.forEach(color => {
-
                 const rgb = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
                 const hex = rgbToHex(color[0], color[1], color[2]);
 
                 const div = document.createElement("div");
                 div.className = "color-box";
                 div.style.background = rgb;
-                div.textContent = hex;
 
-                // 🔹 NUEVO: evento click
+                // Add hex label as <span>
+                const label = document.createElement("span");
+                label.textContent = hex;
+                div.appendChild(label);
+
+                // Click handler (keep your existing logic)
                 div.addEventListener("click", () => {
+                    // Optional: highlight selected swatch
+                    document.querySelectorAll(".color-box").forEach(el => el.classList.remove("selected"));
+                    div.classList.add("selected");
                     analyzeColor(hex);
                 });
 
                 paletteContainer.appendChild(div);
             });
+
+            // Optional: wrap in flex container for responsive grid
+            paletteContainer.style.display = "flex";
+            paletteContainer.style.flexWrap = "wrap";
+            paletteContainer.style.gap = "16px";
+            paletteContainer.style.justifyContent = "center";
         }
-
-
-        function analyzePalette() {
-
-            if (currentPalette.length < 2) return;
-
-            const hues = currentPalette.map(c => {
-                const hex = rgbToHex(c[0], c[1], c[2]);
-                return hexToHSL(hex).h;
-            }).sort((a, b) => a - b);
-
-            const diffs = [];
-
-            for (let i = 0; i < hues.length; i++) {
-                for (let j = i + 1; j < hues.length; j++) {
-                    diffs.push(Math.abs(hues[i] - hues[j]));
-                }
-            }
-
-            let result = "Sin patrón claro";
-
-            if (diffs.every(d => d < 15)) result = "Monocromática";
-
-            if (diffs.some(d => Math.abs(d - 180) < 15)) result = "Complementaria";
-
-            if (diffs.some(d => Math.abs(d - 120) < 15)) result = "Triada";
-
-            if (diffs.some(d => Math.abs(d - 90) < 15)) result = "Tetrada";
-
-            if (diffs.every(d => d <= 30)) result = "Análoga";
-
-        }
-
 
         function hexToHSL(H) {
-
-            let r = 0, g = 0, b = 0;
-
-            r = parseInt(H.substring(1, 3), 16) / 255;
-            g = parseInt(H.substring(3, 5), 16) / 255;
-            b = parseInt(H.substring(5, 7), 16) / 255;
+            let r = parseInt(H.substring(1, 3), 16) / 255;
+            let g = parseInt(H.substring(3, 5), 16) / 255;
+            let b = parseInt(H.substring(5, 7), 16) / 255;
 
             const max = Math.max(r, g, b);
             const min = Math.min(r, g, b);
@@ -289,189 +327,9 @@
                     case g: h = (b - r) / d + 2; break;
                     case b: h = (r - g) / d + 4; break;
                 }
-
                 h = Math.round(h * 60);
             }
-
-            return { h: h, s: s, l: l };
-        }
-
-        function analyzeColor(selectedHex) {
-
-            if (currentPalette.length < 2) {
-                alert("Necesitas al menos 2 colores.");
-                return;
-            }
-
-            const selectedHSL = hexToHSL(selectedHex);
-            const selectedHue = selectedHSL.h;
-
-            const hues = currentPalette.map(c => {
-                const hex = rgbToHex(c[0], c[1], c[2]);
-                return hexToHSL(hex).h;
-            });
-
-            let type = "Sin patrón claro";
-
-            // 🔹 Monocromático
-            const mono = hues.every(h => Math.abs(h - selectedHue) < 10);
-            if (mono) type = "Monocromático";
-
-            // 🔹 Complementario
-            const complementary = hues.some(h => Math.abs(Math.abs(h - selectedHue) - 180) < 15);
-            if (complementary) type = "Complementario";
-
-            // 🔹 Análogo
-            const analogous = hues.some(h => Math.abs(h - selectedHue) <= 30 && h !== selectedHue);
-            if (analogous) type = "Análogo";
-
-            // 🔹 Triada
-            const triad = hues.some(h => Math.abs(Math.abs(h - selectedHue) - 120) < 15);
-            if (triad) type = "Triada";
-
-            alert("Este color pertenece a una combinación: " + type);
-        }
-
-        // 🔹 Click en la zona abre el selector
-        dropZone.addEventListener("click", () => {
-            imageInput.click();
-        });
-
-        // 🔹 Cuando se selecciona archivo manualmente
-        imageInput.addEventListener("change", (e) => {
-            handleFile(e.target.files[0]);
-        });
-
-        // 🔹 Cuando se arrastra sobre la zona
-        dropZone.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            dropZone.classList.add("dragover");
-        });
-
-        // 🔹 Cuando se sale del área
-        dropZone.addEventListener("dragleave", () => {
-            dropZone.classList.remove("dragover");
-        });
-
-        // 🔹 Cuando se suelta el archivo
-        dropZone.addEventListener("drop", (e) => {
-            e.preventDefault();
-            dropZone.classList.remove("dragover");
-
-            const file = e.dataTransfer.files[0];
-            handleFile(file);
-        });
-
-        let loadedImage = null; // 🔹 imagen cargada globalmente
-
-        function handleFile(file) {
-
-            errorMsg.textContent = "";
-
-
-            // 🔹 VALIDACIÓN: verificar archivo
-
-            // 🔹 VALIDACIÓN: verificar archivo
-            if (!file) {
-                errorMsg.textContent = "No se detectó ningún archivo.";
-                fileNameDisplay.textContent = ""; // 🔹 limpiar nombre
-
-                return;
-            }
-
-            // 🔹 VALIDACIÓN: tipo imagen
-            if (!file.type.startsWith("image/")) {
-                errorMsg.textContent = "Solo se permiten imágenes.";
-                fileNameDisplay.textContent = ""; // 🔹 limpiar nombre
-                return;
-            }
-
-            fileNameDisplay.textContent = "Archivo cargado: " + file.name;
-            const reader = new FileReader();
-
-            reader.onload = function (e) {
-                const img = new Image();
-                img.src = e.target.result;
-
-                img.onload = function () {
-
-
-                    loadedImage = img;
-
-                    drawPreview(img); // 🔹 ahora usamos función separada
-                    dropZone.textContent = "Imagen cargada correctamente ✔";
-                };
-            };
-
-            reader.readAsDataURL(file);
-        }
-
-        function drawPreview(img) {
-
-            const maxWidth = 400; // límite visual
-            const scale = Math.min(maxWidth / img.width, 1);
-
-            const width = img.width * scale;
-            const height = img.height * scale;
-
-            canvas.width = width;
-            canvas.height = height;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // limpiar antes
-
-            ctx.drawImage(img, 0, 0, width, height);
-        }
-
-        let currentPalette = []; // 🔹 Guardamos la paleta actual para exportar
-
-        function generatePalette() {
-
-            errorMsg.textContent = "";
-            paletteContainer.innerHTML = "";
-
-            // 🔹 VALIDATION: ensure image is loaded
-            if (!loadedImage) {
-                errorMsg.textContent = "Primero debes cargar una imagen.";
-                return;
-            }
-
-            const count = parseInt(document.getElementById('colorCount').value);
-
-            if (isNaN(count) || count < 2 || count > 20) {
-                errorMsg.textContent = "Selecciona entre 2 y 20 colores.";
-                return;
-            }
-
-            const colorThief = new ColorThief();
-
-            // 🔹 Use already loaded image (THIS IS THE FIX)
-            const palette = colorThief.getPalette(loadedImage, count);
-
-            currentPalette = palette;
-
-            displayPalette(palette);
-            wheelCtx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
-
-            drawColorWheel();
-            plotPaletteOnWheel();
-            analyzePalette();
-
-        }
-
-        function displayPalette(palette) {
-
-            palette.forEach(color => {
-
-                const rgb = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
-                const hex = rgbToHex(color[0], color[1], color[2]);
-
-                const div = document.createElement("div");
-                div.className = "color-box";
-                div.style.background = rgb;
-                div.textContent = hex;
-
-                paletteContainer.appendChild(div);
-            });
+            return { h, s, l };
         }
 
         function rgbToHex(r, g, b) {
@@ -480,21 +338,121 @@
                 .join('');
         }
 
+        function analyzeColor(selectedHex) {
+            if (currentPalette.length < 2) {
+                alert("Necesitas al menos 2 colores.");
+                return;
+            }
+
+            const selectedHSL = hexToHSL(selectedHex);
+            const selectedHue = selectedHSL.h;
+            const hues = currentPalette.map(c => hexToHSL(rgbToHex(c[0], c[1], c[2])).h);
+
+            let type = "Sin patrón claro";
+
+            if (hues.every(h => Math.abs(h - selectedHue) < 10)) type = "Monocromático";
+            else if (hues.some(h => Math.abs(Math.abs(h - selectedHue) - 180) < 15)) type = "Complementario";
+            else if (hues.some(h => Math.abs(h - selectedHue) <= 30 && h !== selectedHue)) type = "Análogo";
+            else if (hues.some(h => Math.abs(Math.abs(h - selectedHue) - 120) < 15)) type = "Triada";
+
+            alert("Este color pertenece a una combinación: " + type);
+        }
+
+        // Event listeners
+        dropZone.addEventListener("click", () => imageInput.click());
+        imageInput.addEventListener("change", (e) => handleFile(e.target.files[0]));
+        dropZone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropZone.classList.add("dragover");
+        });
+        dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+        dropZone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropZone.classList.remove("dragover");
+            handleFile(e.dataTransfer.files[0]);
+        });
+
+        let loadedImage = null;
+        let currentPalette = [];
+
+        function handleFile(file) {
+            errorMsg.textContent = "";
+            if (!file) {
+                errorMsg.textContent = "No se detectó ningún archivo.";
+                fileNameDisplay.textContent = "";
+                return;
+            }
+            if (!file.type.startsWith("image/")) {
+                errorMsg.textContent = "Solo se permiten imágenes.";
+                fileNameDisplay.textContent = "";
+                return;
+            }
+
+            fileNameDisplay.textContent = "Archivo cargado: " + file.name;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function () {
+                    loadedImage = img;
+                    drawPreview(img);
+                    generatePalette()
+                    dropZone.innerHTML = '<p>Imagen cargada correctamente ✔</p><input type="file" id="imageInput" accept="image/*" hidden>';
+                };
+            };
+
+
+            reader.readAsDataURL(file);
+
+         
+
+        }
+
+        function drawPreview(img) {
+            const maxWidth = 400;
+            const scale = Math.min(maxWidth / img.width, 1);
+            const width = img.width * scale;
+            const height = img.height * scale;
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, width, height);
+        }
+
+        function generatePalette() {
+            errorMsg.textContent = "";
+            if (!loadedImage) {
+                errorMsg.textContent = "Primero debes cargar una imagen.";
+                return;
+            }
+
+            // const count = parseInt(document.getElementById('colorCount').value);
+            // if (isNaN(count) || count < 2 || count > 20) {
+            //     errorMsg.textContent = "Selecciona entre 2 y 20 colores.";
+            //     return;
+            // }
+            const count = 10
+            const colorThief = new ColorThief();
+            const palette = colorThief.getPalette(loadedImage, count);
+            currentPalette = palette;
+
+            displayPalette(palette);
+            wheelCtx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
+            drawColorWheel();
+            plotPaletteOnWheel();
+        }
 
         function exportPNG() {
-
             if (currentPalette.length === 0) {
                 errorMsg.textContent = "No hay paleta para exportar.";
                 return;
             }
 
-            // 🔹 Crear canvas temporal para exportar imagen
             const exportCanvas = document.createElement("canvas");
             const exportCtx = exportCanvas.getContext("2d");
-
             const width = 150 * currentPalette.length;
             const height = 150;
-
             exportCanvas.width = width;
             exportCanvas.height = height;
 
@@ -509,7 +467,6 @@
             link.click();
         }
     </script>
-
 </body>
 
 </html>

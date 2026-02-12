@@ -25,10 +25,8 @@
 
         .container {
             width: 100%;
-            max-width: 900px;
             background: #1e1e1e;
             border-radius: 16px;
-            overflow: hidden;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
         }
 
@@ -78,9 +76,10 @@
 
         .content {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             gap: 25px;
             padding: 25px;
+            width: 100%;
         }
 
         .section {
@@ -108,6 +107,10 @@
         @media (max-width: 768px) {
             .controls {
                 grid-template-columns: 1fr;
+            }
+
+            .content {
+                flex-direction: column;
             }
         }
 
@@ -515,11 +518,12 @@
 <body>
     <div class="container">
         <header>
-            <h1><span>🎨</span> Generador de Gradientes</h1>
             <nav>
                 <a href="index.html">Color generation</a>
                 <a href="image.html">Generate color from image</a>
             </nav>
+            <h1><span>🎨</span> Generador de Gradientes</h1>
+
         </header>
 
         <div class="content">
@@ -644,31 +648,19 @@
                     </div>
                 </div>
 
-                <div class="actions">
+                <!-- <div class="actions">
                     <button id="applyGradient">
                         <span>⚙️</span> Aplicar Gradiente
                     </button>
                     <button id="resetImage">
                         <span>↩️</span> Restablecer
                     </button>
-                </div>
+                </div> -->
             </div>
 
-            <div class="instructions">
-                <h3><span>ℹ️</span> Instrucciones</h3>
-                <ul>
-                    <li>Configura tu gradiente ajustando los parámetros y la cantidad de colores</li>
-                    <li>Usa los botones de armonía para generar esquemas de colores profesionales</li>
-                    <li>Carga una imagen para aplicar el gradiente como overlay</li>
-                    <li>Ajusta la opacidad y el modo de mezcla para diferentes efectos</li>
-                    <li>Descarga tu gradiente como imagen o la preview con la imagen aplicada</li>
-                </ul>
-            </div>
+
         </div>
 
-        <div class="footer">
-            <p>Generador de Gradientes • Creado con ❤️ para diseñadores</p>
-        </div>
     </div>
 
     <script>
@@ -688,8 +680,8 @@
         const downloadImage = document.getElementById("downloadImage");
         const downloadPreview = document.getElementById("downloadPreview");
         const dropZone = document.getElementById("dropZone");
-        const applyGradientBtn = document.getElementById("applyGradient");
-        const resetImageBtn = document.getElementById("resetImage");
+        // const applyGradientBtn = document.getElementById("applyGradient");
+        // const resetImageBtn = document.getElementById("resetImage");
         const successMessage = document.getElementById("successMessage");
         const opacityValue = document.querySelector(".slider-value");
         const harmonyButtons = document.querySelectorAll(".harmony-btn");
@@ -710,8 +702,8 @@
         blendMode.addEventListener("change", updateGradient);
         downloadImage.addEventListener("click", exportGradient);
         downloadPreview.addEventListener("click", exportPreview);
-        applyGradientBtn.addEventListener("click", applyGradient);
-        resetImageBtn.addEventListener("click", resetImage);
+        // applyGradientBtn.addEventListener("click", applyGradient);
+        // resetImageBtn.addEventListener("click", resetImage);
 
         // Harmony buttons
         harmonyButtons.forEach(btn => {

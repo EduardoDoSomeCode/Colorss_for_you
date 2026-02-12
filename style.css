@@ -1,118 +1,199 @@
-  body {
-      background-color: rgb(24, 26, 37);
-      color: #fff;
-      font-family: system-ui, sans-serif;
-      padding: 2rem;
-      text-align: center;
-  }
+/* === COLOR SWATCHES FOR PALETTE GENERATOR === */
+#palette {
+  display: flex;
+  gap: 16px;
+  margin: 2rem auto;
+  max-width: 1000px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
 
-  #palette {
-      display: flex;
-      height: 300px;
-      max-width: 1000px;
-      margin: 2rem auto;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, .4);
-  }
+.color {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 8px 6px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  cursor: grab;
+  overflow: hidden;
+}
 
-  #palette.vertical {
-      flex-direction: column;
-      height: 500px;
-  }
+.color:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+}
 
-  .color {
-      flex: 1;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      cursor: grab;
-  }
+.color.dragging {
+  opacity: 0.7;
+  transform: scale(1.05);
+}
 
-  .label {
-      cursor: pointer;
-      padding: .4rem .7rem;
-      border-radius: 6px;
-      background: rgba(0, 0, 0, .15);
-      text-align: center;
-  }
+.color::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
 
-  .ratio {
-      font-size: .75rem;
-      opacity: .8;
-      margin-top: 4px;
-  }
+.color:hover::before {
+  opacity: 1;
+}
 
-  .controls {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      display: flex;
-      gap: 6px;
-  }
+.color .label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  text-align: center;
+  line-height: 1.3;
+  max-width: 90%;
+  word-break: break-all;
+}
 
-  .btn {
-      border: none;
-      background: rgba(0, 0, 0, .45);
-      color: inherit;
-      border-radius: 6px;
-      padding: 5px 7px;
-      cursor: pointer;
-      font-size: .85rem;
-  }
+/* Controls inside swatch */
+.controls {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
 
-  .btn.active {
-      background: rgba(0, 0, 0, .85);
-  }
+.color:hover .controls {
+  opacity: 1;
+}
 
-  .actions {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
-  }
+.btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
 
-  button.main {
-      padding: .75rem 1.25rem;
-      border-radius: 8px;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-  }
+.btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
 
-  /* History */
-  #history {
-      max-width: 1000px;
-      margin: 2rem auto;
-      display: flex;
-      gap: .5rem;
-      overflow-x: auto;
-  }
+/* History mini-swatches */
+.history-item {
+  display: flex;
+  height: 50px;
+  min-width: 120px;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
 
-  .history-item {
-      display: flex;
-      height: 50px;
-      min-width: 120px;
-      border-radius: 6px;
-      overflow: hidden;
-      cursor: pointer;
-      transition: transform 0.15s ease;
-  }
+.history-item:hover {
+  transform: scale(1.05);
+}
 
-  .history-item:hover {
-      transform: scale(1.05);
-  }
+.history-item > span {
+  flex: 1;
+  height: 100%;
+  display: block;
+}
 
+.history-item button.fav-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #aaa;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-left: 4px;
+}
 
-  .history-item span {
-      flex: 1;
-      height: 100%;
-      display: block;
-  }
+.history-item button.fav-btn:hover {
+  color: #ffcc00;
+}
 
+/* Actions bar */
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
 
-  .history-item div {
-      flex: 1;
-  }
+.main {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  background: #4CAF50;
+  color: white;
+  transition: all 0.3s;
+}
+
+.main:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Undo/Redo buttons */
+#undo, #redo {
+  padding: 10px 16px;
+  background: #555;
+}
+
+#undo:hover, #redo:hover {
+  background: #666;
+}
+
+.btn svg {
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+  pointer-events: none; /* so click targets the button, not SVG */
+}
+
+.btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.btn.active {
+  background: #4CAF50;
+  color: white;
+}
