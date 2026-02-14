@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Extractor Profesional de Líneas</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #121212;
+            color: white;
+            text-align: center;
+        }
+
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .side-by-side {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        canvas {
+            max-width: 45vw;
+            border: 1px solid #333;
+            background: repeating-conic-gradient(#222 0% 25%, #333 0% 50%) 50% / 20px 20px;
+        }
+    </style>
+
+    <h1>Extractor de Líneas - Side by Side</h1>
+
+    <input type="file" id="upload" accept="image/*">
+
+    <div class="controls">
+        <label>Exposición:
+            <input type="range" id="exposure" min="-100" max="100" value="0">
+        </label>
+
+        <label>Contrast:
+            <input type="range" id="threshold" min="0" max="255" value="150">
+        </label>
+
+        <label>Suavizado:
+            <input type="range" id="smooth" min="0" max="3" value="1">
+        </label>
+
+
+    </div>
+    <button onclick="downloadImage()">Exportar PNG</button>
+    <div class="side-by-side">
+        <div>
+            <h3>Original</h3>
+            <canvas id="originalCanvas"></canvas>
+        </div>
+
+        <div>
+            <h3>Procesado</h3>
+            <canvas id="processedCanvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+      const upload = document.getElementById("upload");
+const originalCanvas = document.getElementById("originalCanvas");
+const processedCanvas = document.getElementById("processedCanvas");
+
+const originalCtx = originalCanvas.getContext("2d");
+const processedCtx = processedCanvas.getContext("2d");
+
+const exposureSlider = document.getElementById("exposure");
+const thresholdSlider = document.getElementById("threshold");
+const smoothSlider = document.getElementById("smooth");
+
+let originalImage = new Image();
+
+// 🔹 Canvas interno para preview (baja resolución)
+const previewCanvas = document.createElement("canvas");
+const previewCtx = previewCanvas.getContext("2d");
+
+let isRendering = false;
+let renderTimeout = null;
+
+// 🔹 Cargar imagen
+upload.addEventListener("change", function (e) {
+
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+        originalImage.src = event.target.result;
+    };
+
+    reader.readAsDataURL(e.target.files[0]);
+});
+
+// 🔹 Cuando carga imagen
+originalImage.onload = function () {
+
+    originalCanvas.width = processedCanvas.width = originalImage.width;
+    originalCanvas.height = processedCanvas.height = originalImage.height;
+
+    originalCtx.drawImage(originalImage, 0, 0);
+
+    renderFull(); // 🔹 render inicial
+};
+
+// 🔹 Eventos sliders (render animado + preview)
+[exposureSlider, thresholdSlider, smoothSlider].forEach(slider => {
+
+    slider.addEventListener("input", () => {
+
+        renderPreview(); // 🔹 mientras se mueve
+
+        clearTimeout(renderTimeout);
+
+        // 🔹 Render final cuando deja de mover
+        renderTimeout = setTimeout(() => {
+            renderFull();
+        }, 250);
+    });
+
+});
+
+// 🔹 Render preview baja resolución
+function renderPreview() {
+
+    if (!originalImage.src) return;
+
+    if (isRendering) return;
+    isRendering = true;
+
+    requestAnimationFrame(() => {
+
+        const scale = 0.4; // 🔹 resolución reducida
+
+        previewCanvas.width = originalImage.width * scale;
+        previewCanvas.height = originalImage.height * scale;
+
+        previewCtx.drawImage(originalImage, 0, 0, previewCanvas.width, previewCanvas.height);
+
+        process(previewCtx, previewCanvas);
+
+        // 🔹 Mostrar preview escalado
+        processedCtx.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
+        processedCtx.drawImage(previewCanvas, 0, 0, processedCanvas.width, processedCanvas.height);
+
+        isRendering = false;
+    });
+}
+
+// 🔹 Render full resolución
+function renderFull() {
+
+    if (!originalImage.src) return;
+
+    processedCtx.drawImage(originalImage, 0, 0);
+    process(processedCtx, processedCanvas);
+}
+
+// 🔹 Procesamiento común
+function process(ctx, canvas) {
+
+    const exposureValue = parseInt(exposureSlider.value);
+    const thresholdValue = parseInt(thresholdSlider.value);
+    const smoothLevel = parseInt(smoothSlider.value);
+
+    let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let data = imageData.data;
+
+    // 🔹 Escala grises + exposición
+    for (let i = 0; i < data.length; i += 4) {
+
+        let gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+
+        gray += exposureValue;
+
+        data[i] = data[i + 1] = data[i + 2] = gray;
+    }
+
+    // 🔹 Suavizado
+    if (smoothLevel > 0) {
+        imageData = boxBlur(imageData, smoothLevel);
+        data = imageData.data;
+    }
+
+    // 🔹 Umbral + transparencia
+    for (let i = 0; i < data.length; i += 4) {
+
+        if (data[i] < thresholdValue) {
+            data[i] = 0;
+            data[i + 1] = 0;
+            data[i + 2] = 0;
+            data[i + 3] = 255;
+        } else {
+            data[i + 3] = 0;
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+}
+
+// 🔹 Box blur
+function boxBlur(imageData, radius) {
+
+    const { width, height, data } = imageData;
+    const copy = new Uint8ClampedArray(data);
+
+    for (let y = radius; y < height - radius; y++) {
+        for (let x = radius; x < width - radius; x++) {
+
+            let total = 0;
+            let count = 0;
+
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+
+                    const index = ((y + dy) * width + (x + dx)) * 4;
+                    total += copy[index];
+                    count++;
+                }
+            }
+
+            const avg = total / count;
+            const i = (y * width + x) * 4;
+
+            data[i] = data[i + 1] = data[i + 2] = avg;
+        }
+    }
+
+    return imageData;
+}
+
+// 🔹 Exportar
+function downloadImage() {
+
+    const link = document.createElement("a");
+    link.download = "lineas_profesional.png";
+    link.href = processedCanvas.toDataURL("image/png");
+    link.click();
+}
+
+
+
+    </script>
+</body>
+
+</html>
